@@ -66,7 +66,7 @@ Repository Root/
 
 - Use a Cloudflare **API Token** with Zone:DNS Edit permissions (a Global API Key will fail with "Invalid request headers").
 - This script assumes a fairly standard Linux environment (Debian/Ubuntu style). Adjust as needed for other distros.
-- Want to harden your WordPress install further? Check out my [WordPress Hardening Tool](https://github.com/haywardgg/wp-hardening-tool) for a quick post-install security pass.
+- Want to harden your WordPress install further? Check out my [WordPress Hardening Tool](https://github.com/haywardgg/wp-hardening) for a quick post-install security pass.
 
 ---
 
