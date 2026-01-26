@@ -73,8 +73,13 @@ validate_email() {
     return 1
   fi
   
-  # Basic email validation regex
+  # Basic email validation regex (more lenient for TLDs)
   if [[ ! "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    # Check if it at least has an @ and domain part
+    if [[ "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+$ ]]; then
+      # Allow emails without TLD for local domains
+      return 0
+    fi
     return 1
   fi
   
