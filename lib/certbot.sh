@@ -1,16 +1,36 @@
 #!/usr/bin/env bash
 
 request_certificate() {
-  log "Requesting TLS certificate with Certbot (Cloudflare DNS)..."
-  run_cmd certbot certonly \
-    --dns-cloudflare \
-    --dns-cloudflare-credentials "${CLOUDFLARE_INI}" \
-    --non-interactive \
-    --agree-tos \
-    --no-eff-email \
-    --email "${CERTBOT_EMAIL}" \
-    -d "${WEBSITE_NAME}" \
-    -d "*.${WEBSITE_NAME}"
+  if [[ "${CERT_METHOD}" == "cloudflare" ]]; then
+    log "Requesting TLS certificate with Certbot (Cloudflare DNS challenge)..."
+    run_cmd certbot certonly \
+      --dns-cloudflare \
+      --dns-cloudflare-credentials "${CLOUDFLARE_INI}" \
+      --non-interactive \
+      --agree-tos \
+      --no-eff-email \
+      --email "${CERTBOT_EMAIL}" \
+      -d "${WEBSITE_NAME}" \
+      -d "*.${WEBSITE_NAME}"
+    success "TLS certificate obtained successfully (wildcard included)."
+  else
+    log "Requesting TLS certificate with Certbot (HTTP challenge)..."
+    
+    # Ensure nginx is running for HTTP challenge
+    if ! systemctl is-active --quiet nginx; then
+      log "Starting nginx for HTTP challenge..."
+      run_cmd systemctl start nginx || warn "Failed to start nginx, continuing anyway..."
+    fi
+    
+    run_cmd certbot certonly \
+      --nginx \
+      --non-interactive \
+      --agree-tos \
+      --no-eff-email \
+      --email "${CERTBOT_EMAIL}" \
+      -d "${WEBSITE_NAME}"
+    success "TLS certificate obtained successfully."
+  fi
 }
 
 ensure_certbot_renewal() {

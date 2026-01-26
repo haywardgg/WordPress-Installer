@@ -83,7 +83,10 @@ main() {
   echo "Database user:    ${DB_USER}"
   echo "Database pass:    ${db_password_display}"
   echo "MySQL root pass:  ${root_display}"
-  echo "Cloudflare token: stored at ${CLOUDFLARE_INI}"
+  if [[ "${CERT_METHOD}" == "cloudflare" ]]; then
+    echo "Cloudflare token: stored at ${CLOUDFLARE_INI}"
+  fi
+  echo "SSL method:       ${CERT_METHOD}"
   echo "==============================================="
 }
 
