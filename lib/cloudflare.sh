@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 configure_cloudflare_credentials() {
+  # Skip if not using Cloudflare DNS challenge
+  if [[ "${CERT_METHOD}" != "cloudflare" ]]; then
+    log "Skipping Cloudflare configuration (using ${CERT_METHOD} method)."
+    return
+  fi
+  
   log "Configuring Cloudflare DNS credentials..."
   run_cmd mkdir -p "${SECRETS_DIR}"
   run_cmd chmod 700 "${SECRETS_DIR}"
@@ -13,7 +19,10 @@ configure_cloudflare_credentials() {
       fi
       overwrite="y"
     else
-      read -rp "Cloudflare credentials already exist at ${CLOUDFLARE_INI}. Overwrite? [y/N]: " overwrite
+      echo
+      local overwrite
+      echo -ne "${YELLOW}⚠${RESET}  Cloudflare credentials already exist. Overwrite? [y/N]: "
+      read -r overwrite
       if [[ ! "${overwrite,,}" =~ ^y$ ]]; then
         log "Keeping existing Cloudflare credentials."
         return
@@ -26,7 +35,14 @@ configure_cloudflare_credentials() {
       die "--non-interactive is set; provide CLOUDFLARE_API_TOKEN or ensure ${CLOUDFLARE_INI} exists."
     fi
 
-    read -rp "Enter your Cloudflare API Token (Zone DNS edit permissions): " CLOUDFLARE_API_TOKEN
+    echo
+    echo -e "${BOLD}${BLUE}Cloudflare API Token Required${RESET}"
+    echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${BLUE}→${RESET} You need an API token with Zone:DNS Edit permissions"
+    echo -e "${BLUE}→${RESET} Create one at: https://dash.cloudflare.com/profile/api-tokens"
+    echo
+    echo -ne "${GREEN}➜${RESET} Enter your Cloudflare API Token: "
+    read -r CLOUDFLARE_API_TOKEN
   fi
 
   CLOUDFLARE_API_TOKEN=$(trim "${CLOUDFLARE_API_TOKEN}")

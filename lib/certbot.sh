@@ -1,16 +1,46 @@
 #!/usr/bin/env bash
 
 request_certificate() {
-  log "Requesting TLS certificate with Certbot (Cloudflare DNS)..."
-  run_cmd certbot certonly \
-    --dns-cloudflare \
-    --dns-cloudflare-credentials "${CLOUDFLARE_INI}" \
-    --non-interactive \
-    --agree-tos \
-    --no-eff-email \
-    --email "${CERTBOT_EMAIL}" \
-    -d "${WEBSITE_NAME}" \
-    -d "*.${WEBSITE_NAME}"
+  if [[ "${CERT_METHOD}" == "cloudflare" ]]; then
+    log "Requesting TLS certificate with Certbot (Cloudflare DNS challenge)..."
+    
+    # Validate that cloudflare credentials exist
+    if [[ ! -f "${CLOUDFLARE_INI}" ]]; then
+      die "Cloudflare credentials file not found at ${CLOUDFLARE_INI}. Cannot proceed with DNS challenge."
+    fi
+    
+    run_cmd certbot certonly \
+      --dns-cloudflare \
+      --dns-cloudflare-credentials "${CLOUDFLARE_INI}" \
+      --non-interactive \
+      --agree-tos \
+      --no-eff-email \
+      --email "${CERTBOT_EMAIL}" \
+      -d "${WEBSITE_NAME}" \
+      -d "*.${WEBSITE_NAME}"
+    success "TLS certificate obtained successfully (wildcard included)."
+  elif [[ "${CERT_METHOD}" == "http" ]]; then
+    log "Requesting TLS certificate with Certbot (HTTP challenge)..."
+    
+    # Ensure nginx is running for HTTP challenge
+    if ! systemctl is-active --quiet nginx; then
+      log "Starting nginx for HTTP challenge..."
+      if ! run_cmd systemctl start nginx; then
+        warn "Failed to start nginx. The HTTP challenge will likely fail without nginx running to serve the validation files."
+      fi
+    fi
+    
+    run_cmd certbot certonly \
+      --nginx \
+      --non-interactive \
+      --agree-tos \
+      --no-eff-email \
+      --email "${CERTBOT_EMAIL}" \
+      -d "${WEBSITE_NAME}"
+    success "TLS certificate obtained successfully."
+  else
+    die "Invalid certificate method: ${CERT_METHOD}. Must be 'cloudflare' or 'http'."
+  fi
 }
 
 ensure_certbot_renewal() {

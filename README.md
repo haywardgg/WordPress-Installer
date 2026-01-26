@@ -1,11 +1,12 @@
-## 🚀 WordPress, NginX, MariaDB and Python3-Certbot-DNS-Cloudflare
+## 🚀 WordPress, NginX, MariaDB and Certbot with Flexible SSL Options
 
-Welcome! 👋 This repo contains a convenient, modularized installer to deploy WordPress with Python3 and automatically obtain TLS certificates via Certbot, using Cloudflare DNS for validation.
+Welcome! 👋 This repo contains a convenient, modularized installer to deploy WordPress with automatic TLS certificate issuance via Certbot. Choose between Cloudflare DNS challenge (for wildcard certificates) or standard HTTP challenge (no API token required).
 
 **Why this repo?**
 
 - ✅ Quick WordPress install
-- 🔐 Automatic Certbot TLS issuance (Cloudflare DNS challenge)
+- 🔐 Flexible TLS certificate options: Cloudflare DNS or HTTP challenge
+- 🎨 Modern, professional interactive UI
 - 🧰 Minimal, script-driven setup
 
 ---
@@ -30,10 +31,11 @@ sudo ./install.sh
 
 ## 🛠️ What this does
 
-- Installs required system packages and Python3 environment
+- Installs required system packages
 - Downloads and configures WordPress
-- Runs Certbot with Cloudflare DNS validation to get TLS certs
-- Sets up basic permissions and (optionally) cron renewals
+- **NEW:** Choose between Cloudflare DNS validation (for wildcard certs) or standard HTTP validation
+- Runs Certbot to get TLS certificates
+- Sets up basic permissions and automatic certificate renewals
 
 ### Project layout
 
@@ -64,7 +66,10 @@ Repository Root/
 
 ## 📝 Tips & Notes
 
-- Use a Cloudflare **API Token** with Zone:DNS Edit permissions (a Global API Key will fail with "Invalid request headers").
+- **SSL Certificate Options:**
+  - **Cloudflare DNS Challenge:** Use a Cloudflare API Token with Zone:DNS Edit permissions. Supports wildcard certificates (*.example.com).
+  - **HTTP Challenge:** No API token required. Your domain must be pointed to this server. Only covers the main domain (no wildcard).
+- A Global API Key will fail with "Invalid request headers" - always use an API Token.
 - This script assumes a fairly standard Linux environment (Debian/Ubuntu style). Adjust as needed for other distros.
 - Want to harden your WordPress install further? Check out my [WordPress Hardening Tool](https://github.com/haywardgg/wordpress-hardening) for a quick post-install security pass.
 
@@ -82,9 +87,11 @@ _Short on time?_ Run the two commands above and watch the magic happen.
 
 I created this script to help me install WordPress for my clients.  
 
-The script installs WordPress on Linux, using NGINX, MariaDB, PHP and Certbot (for Cloudflare domains). Please read the code before using it, as you'll need to provide a API Token with Zone Access only, etc.
+The script installs WordPress on Linux using NGINX, MariaDB, PHP, and Certbot. You can choose between:
+- **Cloudflare DNS challenge** for domains hosted on Cloudflare (supports wildcard certificates)
+- **HTTP challenge** for domains hosted anywhere (standard validation)
 
-Use at your own risk. 
+Please read the code before using it. Use at your own risk. 
 
 ## Usage
 
@@ -97,13 +104,14 @@ sudo ./install.sh
 
 You will be prompted for:
 - The domain name (without `www`)
+- SSL certificate method (Cloudflare DNS or HTTP challenge)
 - An email address for Let's Encrypt notices
 - Database name and user
-- A Cloudflare API token with DNS edit permissions
+- A Cloudflare API token (only if using Cloudflare DNS challenge)
 
 The script will:
-- Install and configure NGINX, PHP-FPM, MariaDB, and Certbot with the Cloudflare DNS plugin
-- Request certificates for the apex domain and wildcard
+- Install and configure NGINX, PHP-FPM, MariaDB, and Certbot (with or without Cloudflare DNS plugin)
+- Request certificates using your chosen method (Cloudflare DNS or HTTP challenge)
 - Create a database and user with generated passwords
 - Download WordPress, configure `wp-config.php`, and set secure salts
 - Generate and display MySQL root and WordPress database credentials at the end
@@ -116,23 +124,42 @@ You can pass flags to tailor how much output you see and how prompts are handled
 - `--quiet` – hide most command output (default).
 - `--hide-secrets` – mask passwords in the final summary.
 - `--no-colour` – disable coloured output.
-- `--non-interactive` – require environment variables for inputs (website, certificate email, database name and password, Cloudflare key, etc.).
+- `--non-interactive` – require environment variables for inputs (see examples below).
+- `--dangerous` – purge MariaDB, Nginx, and /var/www/html after confirmation (irreversible).
 
-### EXAMPLE 1:
+### EXAMPLE 1: Interactive with verbose output
 
-```sudo ./install.sh --verbose --hide-secrets```
+```bash
+sudo ./install.sh --verbose --hide-secrets
+```
 
-### EXAMPLE 2:
+### EXAMPLE 2: Non-interactive with Cloudflare DNS challenge
 
-```WEBSITE_NAME=example.com \
+```bash
+WEBSITE_NAME=example.com \
 CERTBOT_EMAIL=admin@example.com \
+CERT_METHOD=cloudflare \
 DB_NAME=wordpress \
 DB_USER=wpuser \
 DB_PASSWORD='S3cur3P@ssw0rd!' \
-CLOUDFLARE_API_TOKEN='cf_api_token_here' \
+CLOUDFLARE_API_TOKEN='your_cloudflare_api_token_here' \
 sudo ./install.sh --non-interactive --quiet --hide-secrets
 ```
 
-When using `--non-interactive`, you can omit the Cloudflare API key if `/root/.secrets/cloudflare.ini` already exists; the installer will reuse that file. Otherwise, provide the Cloudflare API token via environment variable so certificate issuance can proceed without any manual input.
+### EXAMPLE 3: Non-interactive with HTTP challenge (no Cloudflare)
 
-The installer also saves the MariaDB root password to `/root/.secrets/mariadb-root.pass` and will reuse it automatically on future runs; you will only be prompted for the root password if the stored value is missing or invalid.
+```bash
+WEBSITE_NAME=example.com \
+CERTBOT_EMAIL=admin@example.com \
+CERT_METHOD=http \
+DB_NAME=wordpress \
+DB_USER=wpuser \
+DB_PASSWORD='S3cur3P@ssw0rd!' \
+sudo ./install.sh --non-interactive --quiet --hide-secrets
+```
+
+When using `--non-interactive`:
+- Set `CERT_METHOD=cloudflare` or `CERT_METHOD=http` to choose the certificate validation method
+- For Cloudflare DNS method, you can omit `CLOUDFLARE_API_TOKEN` if `/root/.secrets/cloudflare.ini` already exists
+- For HTTP method, no Cloudflare credentials are needed
+- The MariaDB root password is saved to `/root/.secrets/mariadb-root.pass` and will be reused automatically on future runs

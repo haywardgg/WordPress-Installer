@@ -30,8 +30,8 @@ require_root() {
 
 trim() {
   local value="$1"
-  value="${value#${value%%[![:space:]]*}}"
-  value="${value%${value##*[![:space:]]}}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "${value}"
 }
 
@@ -45,6 +45,64 @@ mask_secret() {
 
 generate_password() {
   openssl rand -base64 29 | tr -d '=+/' | cut -c1-25
+}
+
+validate_domain() {
+  local domain="$1"
+  
+  # Check if domain is empty
+  if [[ -z "${domain}" ]]; then
+    return 1
+  fi
+  
+  # Domain validation:
+  # - Allows alphanumeric characters, hyphens, and dots
+  # - Must not start or end with hyphen or dot
+  # - Each label (between dots) must be 1-63 characters
+  # - Labels can't start or end with hyphen
+  
+  # Check for invalid characters
+  if [[ "${domain}" =~ [^a-zA-Z0-9.-] ]]; then
+    return 1
+  fi
+  
+  # Check if starts or ends with invalid characters
+  if [[ "${domain}" =~ ^[.-] ]] || [[ "${domain}" =~ [.-]$ ]]; then
+    return 1
+  fi
+  
+  # Check for consecutive dots or hyphens next to dots
+  if [[ "${domain}" =~ \.\. ]] || [[ "${domain}" =~ \.- ]] || [[ "${domain}" =~ -\. ]]; then
+    return 1
+  fi
+  
+  return 0
+}
+
+validate_email() {
+  local email="$1"
+  
+  # Check if email is empty
+  if [[ -z "${email}" ]]; then
+    return 1
+  fi
+  
+  # Email validation:
+  # - Must have exactly one @ symbol
+  # - Local part (before @) can contain letters, numbers, dots, underscores, %, +, -
+  # - Domain part (after @) should be a valid domain format
+  
+  # Check for @ symbol
+  if [[ ! "${email}" =~ ^[^@]+@[^@]+$ ]]; then
+    return 1
+  fi
+  
+  # Basic format check: local@domain
+  if [[ ! "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+$ ]]; then
+    return 1
+  fi
+  
+  return 0
 }
 
 on_exit() {
