@@ -93,8 +93,8 @@ prompt_inputs() {
   if [[ ${NON_INTERACTIVE} -eq 1 ]]; then
     local required_vars=(WEBSITE_NAME CERTBOT_EMAIL DB_NAME DB_USER DB_PASSWORD)
 
-    # Handle CERT_METHOD for non-interactive mode
-    CERT_METHOD=$(trim "${CERT_METHOD:-cloudflare}")
+    # Handle CERT_METHOD for non-interactive mode with global default
+    CERT_METHOD=$(trim "${CERT_METHOD:-${DEFAULT_CERT_METHOD:-cloudflare}}")
     
     # Validate CERT_METHOD
     if [[ "${CERT_METHOD}" != "cloudflare" && "${CERT_METHOD}" != "http" ]]; then

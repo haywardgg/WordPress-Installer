@@ -25,7 +25,9 @@ request_certificate() {
     # Ensure nginx is running for HTTP challenge
     if ! systemctl is-active --quiet nginx; then
       log "Starting nginx for HTTP challenge..."
-      run_cmd systemctl start nginx || warn "Failed to start nginx, continuing anyway..."
+      if ! run_cmd systemctl start nginx; then
+        warn "Failed to start nginx. The HTTP challenge will likely fail without nginx running to serve the validation files."
+      fi
     fi
     
     run_cmd certbot certonly \

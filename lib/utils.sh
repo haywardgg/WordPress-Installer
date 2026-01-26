@@ -55,10 +55,24 @@ validate_domain() {
     return 1
   fi
   
-  # Basic domain validation regex
-  # Allows alphanumeric, hyphens, and dots
-  # Must not start or end with hyphen or dot
-  if [[ ! "${domain}" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+  # Domain validation:
+  # - Allows alphanumeric characters, hyphens, and dots
+  # - Must not start or end with hyphen or dot
+  # - Each label (between dots) must be 1-63 characters
+  # - Labels can't start or end with hyphen
+  
+  # Check for invalid characters
+  if [[ "${domain}" =~ [^a-zA-Z0-9.-] ]]; then
+    return 1
+  fi
+  
+  # Check if starts or ends with invalid characters
+  if [[ "${domain}" =~ ^[.-] ]] || [[ "${domain}" =~ [.-]$ ]]; then
+    return 1
+  fi
+  
+  # Check for consecutive dots or hyphens next to dots
+  if [[ "${domain}" =~ \.\. ]] || [[ "${domain}" =~ \.- ]] || [[ "${domain}" =~ -\. ]]; then
     return 1
   fi
   
@@ -73,13 +87,18 @@ validate_email() {
     return 1
   fi
   
-  # Basic email validation regex (more lenient for TLDs)
-  if [[ ! "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-    # Check if it at least has an @ and domain part
-    if [[ "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+$ ]]; then
-      # Allow emails without TLD for local domains
-      return 0
-    fi
+  # Email validation:
+  # - Must have exactly one @ symbol
+  # - Local part (before @) can contain letters, numbers, dots, underscores, %, +, -
+  # - Domain part (after @) should be a valid domain format
+  
+  # Check for @ symbol
+  if [[ ! "${email}" =~ ^[^@]+@[^@]+$ ]]; then
+    return 1
+  fi
+  
+  # Basic format check: local@domain
+  if [[ ! "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+$ ]]; then
     return 1
   fi
   
