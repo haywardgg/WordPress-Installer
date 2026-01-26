@@ -96,6 +96,11 @@ prompt_inputs() {
     # Handle CERT_METHOD for non-interactive mode
     CERT_METHOD=$(trim "${CERT_METHOD:-cloudflare}")
     
+    # Validate CERT_METHOD
+    if [[ "${CERT_METHOD}" != "cloudflare" && "${CERT_METHOD}" != "http" ]]; then
+      die "Invalid CERT_METHOD: ${CERT_METHOD}. Must be 'cloudflare' or 'http'."
+    fi
+    
     for var in "${required_vars[@]}"; do
       local value
       value=$(trim "${!var:-}")
@@ -106,6 +111,15 @@ prompt_inputs() {
 
       printf -v "${var}" '%s' "${value}"
     done
+    
+    # Validate domain and email formats
+    if ! validate_domain "${WEBSITE_NAME}"; then
+      die "Invalid domain format: ${WEBSITE_NAME}"
+    fi
+    
+    if ! validate_email "${CERTBOT_EMAIL}"; then
+      die "Invalid email format: ${CERTBOT_EMAIL}"
+    fi
 
     DOCUMENT_ROOT="${DOCUMENT_ROOT_BASE}/${WEBSITE_NAME}"
     return
@@ -115,10 +129,23 @@ prompt_inputs() {
 
   print_section "Domain Configuration"
   if [[ -z "${WEBSITE_NAME:-}" ]]; then
-    echo -ne "${GREEN}➜${RESET} Enter your domain (e.g. example.com): "
-    read -r WEBSITE_NAME
+    while true; do
+      echo -ne "${GREEN}➜${RESET} Enter your domain (e.g. example.com): "
+      read -r WEBSITE_NAME
+      WEBSITE_NAME=$(trim "${WEBSITE_NAME:-}")
+      
+      if validate_domain "${WEBSITE_NAME}"; then
+        break
+      else
+        echo -e "   ${RED}✗${RESET} Invalid domain format. Please enter a valid domain (e.g., example.com)"
+      fi
+    done
+  else
+    WEBSITE_NAME=$(trim "${WEBSITE_NAME:-}")
+    if ! validate_domain "${WEBSITE_NAME}"; then
+      die "Invalid domain format: ${WEBSITE_NAME}"
+    fi
   fi
-  WEBSITE_NAME=$(trim "${WEBSITE_NAME:-}")
   [[ -n "${WEBSITE_NAME}" ]] || die "Domain name cannot be empty."
   echo -e "   ${BOLD}Domain:${RESET} ${WEBSITE_NAME}"
 
@@ -162,10 +189,23 @@ prompt_inputs() {
 
   print_section "Contact Information"
   if [[ -z "${CERTBOT_EMAIL:-}" ]]; then
-    echo -ne "${GREEN}➜${RESET} Enter email for Let's Encrypt notifications: "
-    read -r CERTBOT_EMAIL
+    while true; do
+      echo -ne "${GREEN}➜${RESET} Enter email for Let's Encrypt notifications: "
+      read -r CERTBOT_EMAIL
+      CERTBOT_EMAIL=$(trim "${CERTBOT_EMAIL:-}")
+      
+      if validate_email "${CERTBOT_EMAIL}"; then
+        break
+      else
+        echo -e "   ${RED}✗${RESET} Invalid email format. Please enter a valid email address."
+      fi
+    done
+  else
+    CERTBOT_EMAIL=$(trim "${CERTBOT_EMAIL:-}")
+    if ! validate_email "${CERTBOT_EMAIL}"; then
+      die "Invalid email format: ${CERTBOT_EMAIL}"
+    fi
   fi
-  CERTBOT_EMAIL=$(trim "${CERTBOT_EMAIL:-}")
   [[ -n "${CERTBOT_EMAIL}" ]] || die "Email is required for certificate issuance."
   echo -e "   ${BOLD}Email:${RESET} ${CERTBOT_EMAIL}"
 

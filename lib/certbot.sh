@@ -3,6 +3,12 @@
 request_certificate() {
   if [[ "${CERT_METHOD}" == "cloudflare" ]]; then
     log "Requesting TLS certificate with Certbot (Cloudflare DNS challenge)..."
+    
+    # Validate that cloudflare credentials exist
+    if [[ ! -f "${CLOUDFLARE_INI}" ]]; then
+      die "Cloudflare credentials file not found at ${CLOUDFLARE_INI}. Cannot proceed with DNS challenge."
+    fi
+    
     run_cmd certbot certonly \
       --dns-cloudflare \
       --dns-cloudflare-credentials "${CLOUDFLARE_INI}" \
@@ -13,7 +19,7 @@ request_certificate() {
       -d "${WEBSITE_NAME}" \
       -d "*.${WEBSITE_NAME}"
     success "TLS certificate obtained successfully (wildcard included)."
-  else
+  elif [[ "${CERT_METHOD}" == "http" ]]; then
     log "Requesting TLS certificate with Certbot (HTTP challenge)..."
     
     # Ensure nginx is running for HTTP challenge
@@ -30,6 +36,8 @@ request_certificate() {
       --email "${CERTBOT_EMAIL}" \
       -d "${WEBSITE_NAME}"
     success "TLS certificate obtained successfully."
+  else
+    die "Invalid certificate method: ${CERT_METHOD}. Must be 'cloudflare' or 'http'."
   fi
 }
 

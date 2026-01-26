@@ -47,6 +47,40 @@ generate_password() {
   openssl rand -base64 29 | tr -d '=+/' | cut -c1-25
 }
 
+validate_domain() {
+  local domain="$1"
+  
+  # Check if domain is empty
+  if [[ -z "${domain}" ]]; then
+    return 1
+  fi
+  
+  # Basic domain validation regex
+  # Allows alphanumeric, hyphens, and dots
+  # Must not start or end with hyphen or dot
+  if [[ ! "${domain}" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+    return 1
+  fi
+  
+  return 0
+}
+
+validate_email() {
+  local email="$1"
+  
+  # Check if email is empty
+  if [[ -z "${email}" ]]; then
+    return 1
+  fi
+  
+  # Basic email validation regex
+  if [[ ! "${email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    return 1
+  fi
+  
+  return 0
+}
+
 on_exit() {
   local status=$?
 
